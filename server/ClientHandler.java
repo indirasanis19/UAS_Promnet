@@ -18,12 +18,10 @@ public class ClientHandler extends Thread {
     @Override
     public void run() {
         try {
-            // Urutan inisialisasi ObjectOutputStream sebelum ObjectInputStream
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
 
-            // Kirim pesan selamat datang
             out.writeObject("Selamat datang di SmartQueue Server!");
             out.flush();
 
@@ -31,7 +29,6 @@ public class ClientHandler extends Thread {
             System.out.println("Client terhubung: " + clientInfo);
 
             while (true) {
-                // Server menunggu objek (perintah String) dari klien
                 Object obj = in.readObject();
 
                 if (!(obj instanceof String)) {
@@ -47,7 +44,7 @@ public class ClientHandler extends Thread {
                     if (parts.length < 3)
                         continue;
 
-                    String name = parts[1]; // Nama Pelanggan dari field 'Pelanggan A'
+                    String name = parts[1];
                     String menu = parts[2];
 
                     Order order = queueManager.addOrder(name, menu);
@@ -61,7 +58,20 @@ public class ClientHandler extends Thread {
                     Queue<Order> orders = queueManager.getOrders();
                     out.writeObject(orders);
                     out.flush();
+                    out.reset();
+                } else if (command.equals("DEQUEUE")) {
+                    Order finishedOrder = queueManager.processOrder();
+                    String response;
 
+                    if (finishedOrder != null) {
+                        // Balas ke Client Pegawai bahwa pesanan sudah selesai
+                        response = "SUCCESS|Pesanan " + finishedOrder.getOrderNumber() + " telah diselesaikan.";
+                    } else {
+                        response = "FAIL|Antrian kosong, tidak ada pesanan untuk diproses.";
+                    }
+                    out.writeObject(response);
+                    out.flush();
+                    out.reset();
                 } else if (command.equals("EXIT")) {
                     break;
                 }

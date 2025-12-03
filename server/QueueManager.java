@@ -24,4 +24,13 @@ public class QueueManager {
     public synchronized int getQueueSize() {
         return orderQueue.size();
     }
+
+    public synchronized Order processOrder() {
+        // Mengambil dan menghapus pesanan pertama dari antrian
+        Order finishedOrder = orderQueue.poll();
+        if (finishedOrder != null) {
+            System.out.println("Pesanan diproses: " + finishedOrder.getOrderNumber());
+        }
+        return finishedOrder;
+    }
 }
