@@ -1,5 +1,4 @@
-
-import server.Order; // Pastikan Order sudah diimplementasikan dan Serializable
+import server.Order;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -12,13 +11,10 @@ import java.net.Socket;
 import java.util.Queue;
 
 public class RestoStaffGUI extends JFrame {
-
-    // --- VARIABEL KONEKSI ---
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream objectIn;
 
-    // --- SKEMA WARNA ---
     private final Color DARK_BG = new Color(30, 31, 37);
     private final Color TEXT_COLOR = new Color(255, 255, 255);
     private final Color ACCENT_COLOR = new Color(107, 255, 107);
@@ -77,19 +73,27 @@ public class RestoStaffGUI extends JFrame {
         processBtn.setBackground(new Color(255, 107, 107));
         processBtn.setForeground(TEXT_COLOR);
         processBtn.addActionListener(e -> processDequeue());
+        // --- Perbaikan Tampilan 3: Hapus border tombol ---
+        processBtn.setBorderPainted(false);
+        processBtn.setFocusPainted(false);
+        // --------------------------------------------------
         actionPanel.add(processBtn);
 
         JButton refreshBtn = new JButton("Refresh Antrian");
         refreshBtn.setBackground(ACCENT_COLOR.darker());
         refreshBtn.setForeground(TEXT_COLOR);
         refreshBtn.addActionListener(e -> lihatAntrian());
+        // --- Perbaikan Tampilan 3: Hapus border tombol ---
+        refreshBtn.setBorderPainted(false);
+        refreshBtn.setFocusPainted(false);
+        // --------------------------------------------------
         actionPanel.add(refreshBtn);
 
         header.add(actionPanel, BorderLayout.EAST);
         panel.add(header, BorderLayout.NORTH);
 
         // Tabel Antrian
-        String[] columnNames = { "No. Antrian", "Pelanggan", "Menu Dipesan", "Status" };
+        String[] columnNames = { "No", "Pelanggan", "Menu Dipesan", "Status" };
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -100,9 +104,14 @@ public class RestoStaffGUI extends JFrame {
 
         orderTable.setFont(new Font("SansSerif", Font.PLAIN, 12));
         orderTable.setRowHeight(30);
+
+        // --- Perbaikan Tampilan 2: Pastikan Header Kolom Gelap ---
         orderTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        orderTable.getTableHeader().setBackground(HEADER_COLOR.darker());
-        orderTable.getTableHeader().setForeground(TEXT_COLOR);
+        orderTable.getTableHeader().setBackground(HEADER_COLOR);
+        orderTable.getTableHeader().setForeground(DARK_BG);
+        orderTable.getTableHeader().setOpaque(true);
+        // ----------------------------------------------------------
+
         orderTable.setBackground(MEDIUM_BG);
         orderTable.setForeground(TEXT_COLOR);
         orderTable.setSelectionBackground(ACCENT_COLOR.darker());
@@ -117,7 +126,6 @@ public class RestoStaffGUI extends JFrame {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
                 if (!isSelected) {
-                    // Hanya kolom Menu Dipesan yang akan diganti di bawah
                     if (column != 2) {
                         c.setBackground(MEDIUM_BG);
                         c.setForeground(TEXT_COLOR);
@@ -129,13 +137,20 @@ public class RestoStaffGUI extends JFrame {
 
         javax.swing.table.TableColumnModel columnModel = orderTable.getColumnModel();
 
-        // PENGATURAN LEBAR KOLOM
-        columnModel.getColumn(0).setPreferredWidth(80);
-        columnModel.getColumn(0).setMaxWidth(50);
-        columnModel.getColumn(1).setPreferredWidth(80);
-        columnModel.getColumn(2).setPreferredWidth(450);
-        columnModel.getColumn(3).setPreferredWidth(120);
-        columnModel.getColumn(3).setMaxWidth(150);
+        // Kolom 0:
+        columnModel.getColumn(0).setPreferredWidth(40);
+        columnModel.getColumn(0).setMaxWidth(60);
+
+        // Kolom 1: Pelanggan (Perbaikan Tampilan 1: Mengecilkan)
+        columnModel.getColumn(1).setPreferredWidth(90);
+        columnModel.getColumn(1).setMaxWidth(130);
+
+        // Kolom 2: Menu Dipesan (Lebar utama untuk wrapping)
+        columnModel.getColumn(2).setPreferredWidth(500);
+
+        // Kolom 3: Status
+        columnModel.getColumn(3).setPreferredWidth(150);
+        columnModel.getColumn(3).setMaxWidth(200);
 
         // --- Terapkan WRAPPING TEXT Renderer pada Kolom "Menu Dipesan" (Index 2) ---
         columnModel.getColumn(2).setCellRenderer(new TextAreaRenderer());
@@ -236,28 +251,23 @@ public class RestoStaffGUI extends JFrame {
         if (orders != null && !orders.isEmpty()) {
             int counter = 0;
             for (Order order : orders) {
-                String status = (counter == 0) ? "Preparing (Next to Process)" : "Pending";
+                String status = (counter == 0) ? "Preparing" : "Pending";
 
-                // --- PENGAMBILAN DATA (Gunakan try-catch jika getter tidak ada di Order.java)
-                // ---
                 String customerName = "N/A";
                 String menuDetails = "N/A";
 
                 try {
+                    // Mengembalikan ke asumsi awal dari kode pertama
                     customerName = order.getCustomerName();
-                } // Asumsi: Order memiliki getName()
-                catch (Exception e) {
+                } catch (Exception e) {
                     customerName = "Pelanggan " + order.getOrderNumber();
                 }
 
                 try {
                     menuDetails = order.getMenuItem();
-                } // Asumsi: Order memiliki getMenu()
-                catch (Exception e) {
+                } catch (Exception e) {
                     menuDetails = order.toString();
-                } // Fallback
-
-                // --- AKHIR PENGAMBILAN DATA ---
+                }
 
                 Object[] rowData = {
                         order.getOrderNumber(),
@@ -269,8 +279,6 @@ public class RestoStaffGUI extends JFrame {
 
                 counter++;
             }
-            // Setelah semua data ditambahkan, instruksikan tabel untuk menghitung ulang
-            // ukuran
             orderTable.repaint();
             orderTable.revalidate();
         }
@@ -288,6 +296,7 @@ public class RestoStaffGUI extends JFrame {
     // =======================================================
     // --- CLASS RENDERER UNTUK WRAPPING TEXT ---
     // =======================================================
+
     class TextAreaRenderer extends JTextArea implements TableCellRenderer {
 
         public TextAreaRenderer() {
@@ -303,7 +312,6 @@ public class RestoStaffGUI extends JFrame {
 
             setText((value == null) ? "" : value.toString());
 
-            // Atur warna sesuai tema
             if (isSelected) {
                 setBackground(table.getSelectionBackground());
                 setForeground(table.getSelectionForeground());
@@ -313,25 +321,16 @@ public class RestoStaffGUI extends JFrame {
             }
 
             // --- LOGIKA MENGHITUNG TINGGI BARIS SECARA DINAMIS ---
-            // Set lebar kolom agar JTextArea dapat menghitung ketinggian yang dibutuhkan
             int preferredWidth = table.getColumnModel().getColumn(column).getWidth();
-            setSize(new Dimension(preferredWidth, 1)); // Tinggi dummy agar lebar dihitung
+            setSize(new Dimension(preferredWidth, 1));
 
             int preferredHeight = (int) getPreferredSize().getHeight();
 
-            // Dapatkan tinggi baris saat ini
             int rowHeight = table.getRowHeight(row);
 
-            // Cek apakah tinggi yang dibutuhkan melebihi tinggi baris saat ini
             if (preferredHeight > rowHeight) {
                 table.setRowHeight(row, preferredHeight);
-            } else if (preferredHeight < rowHeight && rowHeight > 30) {
-                // Opsional: Jika baris sangat tinggi dan sekarang teksnya pendek,
-                // reset tinggi (hati-hati dengan performa)
-                // table.setRowHeight(row, 30);
             }
-            // --- AKHIR LOGIKA MENGHITUNG TINGGI BARIS ---
-
             return this;
         }
     }
